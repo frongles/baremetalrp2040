@@ -7,10 +7,19 @@ MEMORY
 
 SECTIONS
 {
-    .text : 
+    .boot2 : 
     {
+        _sboot2 = .;
         KEEP(*(.boot2*))
-        *(.text*)
+        _eboot2 = .;
+        . = . + (252 - (_eboot2 - _sboot2));
+    } > XIP
+
+    .text :
+    {
+        . = ORIGIN(XIP) + 256;
+        KEEP(*(.main*))
+        KEEP(*(.text*))
     } > XIP
 
 
