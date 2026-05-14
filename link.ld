@@ -12,4 +12,10 @@ SECTIONS
         KEEP(*(.boot2*))
         *(.text*)
     } > XIP
+
+
+    /DISCARD/ : {
+        *(.ARM.exidx*)
+        *(.ARM.extab*)
+    }
 }

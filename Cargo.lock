@@ -5,11 +5,3 @@ version = 4
 [[package]]
 name = "baremetal"
 version = "0.1.0"
-
-[[package]]
-name = "embed"
-version = "0.1.0"
-
-[[package]]
-name = "xtask"
-version = "0.1.0"

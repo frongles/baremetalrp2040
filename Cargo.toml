@@ -3,10 +3,13 @@ name = "baremetal"
 version = "0.1.0"
 edition = "2024"
 
-[workspace]
-members = ["embed","xtask"]
+
+[[bin]]
+name = "baremetal"
+test = false
 
 
-[profile.release.package.embed]
+[profile.release]
 opt-level = "s"     # optimize for size
+panic = "abort"
 debug = false
