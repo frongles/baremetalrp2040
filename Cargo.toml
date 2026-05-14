@@ -1,0 +1,12 @@
+[package]
+name = "baremetal"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+members = ["embed","xtask"]
+
+
+[profile.release.package.embed]
+opt-level = "s"     # optimize for size
+debug = false
