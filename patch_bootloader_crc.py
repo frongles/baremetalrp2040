@@ -83,8 +83,8 @@ def patch(input_path: str, output_path: str) -> None:
     # (already length 252 because boot_region is exactly 256 bytes)
 
     # --- calculate CRC ------------------------------------------------------
-    crc_value = crc32_mpeg2(data_region)
-    crc_bytes  = struct.pack(">I", crc_value)   # big-endian 4 bytes
+    crc_value = crc32_mpeg2(bytes(data_region))
+    crc_bytes  = struct.pack("<I", crc_value)   # big-endian 4 bytes
 
     print(f"[*] CRC-32/MPEG-2 over bytes [0..{DATA_SIZE-1}] = 0x{crc_value:08X}")
 

@@ -10,7 +10,7 @@ const SIO_GPIO_OUT_XOR: u32 = 0xd000001c;
 
 #[unsafe(link_section = ".boot2")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn boot2() -> ! {
+pub fn boot2() -> ! {
     // Bring IO_BANK0 out of reset state
     let reset = RESETS_RESET as *mut u32;
     let reset_done = RESETS_RESET_DONE as *mut u32;
@@ -30,7 +30,7 @@ pub unsafe extern "C" fn boot2() -> ! {
                 core::hint::black_box(());
             }
 
-            sio_out.write_volatile(sio_out.read_volatile() | 1 << 25);
+            sio_out.write_volatile(1 << 25);
         }
     }
 }

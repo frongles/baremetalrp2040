@@ -7,9 +7,12 @@ edition = "2024"
 [[bin]]
 name = "baremetal"
 test = false
+bench = false
 
 
 [profile.release]
 opt-level = "s"     # optimize for size
 panic = "abort"
 debug = false
+
+
