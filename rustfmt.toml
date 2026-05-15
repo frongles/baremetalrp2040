@@ -1,0 +1,8 @@
+max_width = 85
+# fn_call_width = 60
+# attr_fn_like_width = 60
+# struct_lit_width = 40
+# struct_variant_width = 40
+# chain_width = 60
+# single_line_if_else_max_width = 50
+# group_imports = StdExternalCrate # this is nighly only

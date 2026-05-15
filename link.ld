@@ -18,9 +18,17 @@ SECTIONS
     .text :
     {
         . = ORIGIN(XIP) + 256;
+        _svtable = .;
+        KEEP(*(.vector*))
         KEEP(*(.main*))
         KEEP(*(.text*))
     } > XIP
+
+    .stack (NOLOAD) :
+    { 
+        . = ORIGIN(SRAM) + LENGTH(SRAM);
+        _sstack = .;
+    } > SRAM
 
 
     /DISCARD/ : {
