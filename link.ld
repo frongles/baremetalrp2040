@@ -20,7 +20,6 @@ SECTIONS
         . = ORIGIN(XIP) + 256;
         _svtable = .;
         KEEP(*(.vector*))
-        KEEP(*(.main*))
         KEEP(*(.text*))
     } > XIP
 

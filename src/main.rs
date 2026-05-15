@@ -7,14 +7,11 @@ mod ssi_init;
 mod startup;
 mod vectors;
 
-#[unsafe(link_section = ".main")]
-#[unsafe(no_mangle)]
-#[inline(never)]
 pub fn main() {
     let sio_out = register::gpio::OUT_XOR as *mut usize;
     unsafe {
         sio_out.write_volatile(1 << 25);
-        for _ in 0..19 {
+        for _ in 0..49 {
             // Wait for some time
             for _ in 0..100000 {
                 core::hint::black_box(());
