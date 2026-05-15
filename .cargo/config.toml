@@ -6,3 +6,4 @@ runner="bash build.sh"
 rustflags = [
     "-C", "link-arg=-Tlink.ld",
 ]
+
