@@ -2,13 +2,17 @@ use crate::gpio_init::init_gpio;
 use crate::main;
 use crate::register;
 use crate::ssi_init;
+use crate::timer::init_alarm;
 use crate::vectors;
+use crate::watchdog::init_watchdog;
 use core::panic::PanicInfo;
 
 use crate::register::flash::XIP_BASE;
 pub unsafe extern "C" fn reset_handler() {
     // init io stuffs
     init_gpio();
+    init_watchdog();
+    init_alarm();
     main();
     loop {}
 }

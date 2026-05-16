@@ -19,7 +19,24 @@ pub mod ssi {
 pub mod m0plus {
     pub const OFFSET: usize = 0xe0000000;
     pub const VTOR: usize = OFFSET + 0xed08;
+    /// Nested Vector Interrupt Controller
+    /// Interrupt Set Enable Register
+    pub const NVIC_ISER: usize = OFFSET + 0xe100;
 }
 pub mod flash {
     pub const XIP_BASE: usize = 0x10000000;
+}
+
+pub mod time {
+    pub const OFFSET: usize = 0x40054000;
+    pub const ALARM0: usize = OFFSET + 0x10;
+    pub const TIMEHR: usize = OFFSET + 0x08;
+    pub const TIMELR: usize = OFFSET + 0x0C;
+    /// Interrupt enable
+    pub const INTE: usize = OFFSET + 0x38;
+}
+
+pub mod watchdog {
+    pub const OFFSET: usize = 0x40058000;
+    pub const TICK: usize = OFFSET + 0x2c;
 }

@@ -1,6 +1,11 @@
 use crate::gpio_init::init_gpio;
 use crate::register;
 use crate::startup::reset_handler;
+use crate::timer::alarm_intr0;
+use crate::timer::alarm_intr1;
+use crate::timer::alarm_intr2;
+use crate::timer::alarm_intr3;
+
 // declare the _sstack linker variable as a function...
 // we are cheating. Rust allows this but doesn't allow things like
 // extern "C" usize, or extern "C" u32, since they are not Sync
@@ -50,6 +55,10 @@ const fn make_vector_table() -> [Option<Handler>; 48] {
         table[i] = None;
         i = i + 1;
     }
+    table[16] = Some(alarm_intr0);
+    table[17] = Some(alarm_intr1);
+    table[18] = Some(alarm_intr2);
+    table[19] = Some(alarm_intr3);
 
     // etc
     table
