@@ -21,7 +21,7 @@ SECTIONS
         . = ORIGIN(XIP) + 256;
         _svtable = .;
         KEEP(*(.vector*))
-        KEEP(*(.text*))
+        *(.text*)
     } > XIP
 
     .data : 
@@ -41,6 +41,14 @@ SECTIONS
         . = ALIGN(4);
         _ebss = .;
     }
+
+    .heap (NOLOAD) :
+    {
+        _sheap = .;
+        . += 0x8000;  /* 32KB heap */
+        _eheap = .;
+        
+    } > SRAM
 
     .stack (NOLOAD) :
     { 

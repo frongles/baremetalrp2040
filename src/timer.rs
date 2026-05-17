@@ -1,21 +1,3 @@
-// init watchdog tick
-//  TICK register...
-// set up alarm
-// create alarm interrupt handler
-//      must clear interrupt bits
-//      then do what you want it to
-//  decide on an alarm number 0
-//  enable interrupt for alarm number 0
-//  set handler to pointer of irq handler for the irq number of alarm 0
-//  enable irq number of alarm 0
-//  write target time to lower 32 bits of alarm
-//
-//
-// Write to ALARM_INTE to enable ALARM0
-// Enable appropriate timer interrupt TIMER0
-// Write time you want to fire at ALARM0
-//      i.e. current time in TIMERAWL + alarm time in microseconds
-// To clear latched interrupt, write 1 to bit in INTR
 use crate::register;
 
 static mut ALARM_INTR0: fn() = default_alarm;
@@ -34,9 +16,9 @@ pub fn default_alarm() {}
 pub fn set_interrupt(f: fn()) {
     // Writing to a static variable is unsafe due to thread safety
     // I think a safe way around this is
-    // 'check if alarm 1 is enabled. If it is, return an error.
-    // requiring the caller to disable the alarm
-    // For now, it's fine
+    // 'check if alarm 1 is enabled. If it is, return an error'
+    // requiring the caller to disable the alarm, and then update it
+    // For now, it's probably fine
     unsafe {
         ALARM_INTR0 = f;
     }
@@ -56,21 +38,13 @@ pub fn init_xosc() {
         ctrl.write_volatile(0xfab << 12);
         loop {
             let read = stat.read_volatile();
-            let enabled = (read >> 12) & 1;
-            let bad_write = (read >> 24) & 1;
+            let _enabled = (read >> 12) & 1;
+            let _bad_write = (read >> 24) & 1;
             let stable = (read >> 31) & 1;
             if stable == 1 {
                 return;
             }
         }
-    }
-}
-
-pub fn init_watchdog() {
-    use register::watchdog::TICK;
-    let tick = TICK as *mut usize;
-    unsafe {
-        tick.write_volatile(1 << 9 | 12);
     }
 }
 

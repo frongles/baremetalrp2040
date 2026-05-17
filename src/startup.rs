@@ -1,3 +1,4 @@
+use crate::allocator;
 use crate::gpio_init::init_gpio;
 use crate::main;
 use crate::register;
@@ -16,6 +17,9 @@ unsafe extern "C" {
 
     pub fn _sbss();
     pub fn _ebss();
+
+    pub fn _sheap();
+    pub fn _eheap();
 }
 
 pub unsafe extern "C" fn reset_handler() {
@@ -46,6 +50,13 @@ pub unsafe extern "C" fn reset_handler() {
     init_xosc();
     init_watchdog();
     init_alarm();
+
+    unsafe {
+        allocator::ALLOCATOR.get().init(
+            _sheap as *const usize as usize,
+            _eheap as *const usize as usize,
+        )
+    };
 
     main();
     loop {}
