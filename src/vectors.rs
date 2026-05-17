@@ -18,6 +18,10 @@ unsafe extern "C" {
 }
 type Handler = unsafe extern "C" fn();
 
+#[unsafe(link_section = ".vector")]
+#[unsafe(no_mangle)]
+pub static VECTOR_TABLE: [Option<Handler>; 48] = make_vector_table();
+
 unsafe extern "C" fn default_handler() {
     // setup io bank
     init_gpio();
@@ -63,7 +67,3 @@ const fn make_vector_table() -> [Option<Handler>; 48] {
     // etc
     table
 }
-
-#[unsafe(link_section = ".vector")]
-#[unsafe(no_mangle)]
-pub static VECTOR_TABLE: [Option<Handler>; 48] = make_vector_table();

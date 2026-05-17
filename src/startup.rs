@@ -1,18 +1,52 @@
 use crate::gpio_init::init_gpio;
 use crate::main;
 use crate::register;
+use crate::register::flash::XIP_BASE;
 use crate::ssi_init;
 use crate::timer::init_alarm;
+use crate::timer::init_xosc;
 use crate::vectors;
 use crate::watchdog::init_watchdog;
 use core::panic::PanicInfo;
 
-use crate::register::flash::XIP_BASE;
+unsafe extern "C" {
+    pub fn _sdata();
+    pub fn _edata();
+    pub fn _sdataf();
+
+    pub fn _sbss();
+    pub fn _ebss();
+}
+
 pub unsafe extern "C" fn reset_handler() {
+    let data_start = _sdata as *mut usize;
+    let data_end = _edata as *const usize;
+    let mut flash_ptr = _sdataf as *const usize;
+    let mut ram_ptr = data_start;
+
+    while (ram_ptr as *const usize) < data_end {
+        unsafe {
+            ram_ptr.write_volatile(flash_ptr.read());
+            ram_ptr = ram_ptr.add(1);
+            flash_ptr = flash_ptr.add(1);
+        }
+    }
+
+    let mut bss_start = _sbss as *mut usize;
+    let bss_end = _ebss as *mut usize;
+    while bss_start < bss_end {
+        unsafe {
+            bss_start.write_volatile(0);
+            bss_start = bss_start.add(1);
+        }
+    }
+
     // init io stuffs
     init_gpio();
+    init_xosc();
     init_watchdog();
     init_alarm();
+
     main();
     loop {}
 }

@@ -11,6 +11,7 @@ SECTIONS
     {
         _sboot2 = .;
         KEEP(*(.boot2*))
+        . = ALIGN(4);
         _eboot2 = .;
         . = . + (252 - (_eboot2 - _sboot2));
     } > XIP
@@ -23,6 +24,24 @@ SECTIONS
         KEEP(*(.text*))
     } > XIP
 
+    .data : 
+    {
+        . = ALIGN(4);
+        _sdata = .;
+        *(.data*)
+        . = ALIGN(4);
+        _edata = .;
+    } > SRAM AT > XIP
+
+    .bss :
+    {
+        . = ALIGN(4);
+        _sbss = .;
+        *(.bss*)
+        . = ALIGN(4);
+        _ebss = .;
+    }
+
     .stack (NOLOAD) :
     { 
         . = ORIGIN(SRAM) + LENGTH(SRAM);
@@ -34,4 +53,6 @@ SECTIONS
         *(.ARM.exidx*)
         *(.ARM.extab*)
     }
+    _sdataf = LOADADDR(.data);
+
 }

@@ -33,10 +33,17 @@ pub mod time {
     pub const TIMEHR: usize = OFFSET + 0x08;
     pub const TIMELR: usize = OFFSET + 0x0C;
     /// Interrupt enable
+    pub const INTR: usize = OFFSET + 0x34;
     pub const INTE: usize = OFFSET + 0x38;
 }
 
 pub mod watchdog {
     pub const OFFSET: usize = 0x40058000;
     pub const TICK: usize = OFFSET + 0x2c;
+}
+
+pub mod xosc {
+    pub const OFFSET: usize = 0x40024000;
+    pub const CTRL: usize = OFFSET + 0x00;
+    pub const STATUS: usize = OFFSET + 0x04;
 }

@@ -18,12 +18,61 @@
 // To clear latched interrupt, write 1 to bit in INTR
 use crate::register;
 
+static mut ALARM_INTR0: fn() = default_alarm;
+
 pub unsafe extern "C" fn alarm_intr0() {
-    loop {}
+    let intr = register::time::INTR as *mut usize;
+    unsafe { intr.write_volatile(1 << 0) };
+    unsafe { ALARM_INTR0() }
 }
 pub unsafe extern "C" fn alarm_intr1() {}
 pub unsafe extern "C" fn alarm_intr2() {}
 pub unsafe extern "C" fn alarm_intr3() {}
+
+pub fn default_alarm() {}
+
+pub fn set_interrupt(f: fn()) {
+    // Writing to a static variable is unsafe due to thread safety
+    // I think a safe way around this is
+    // 'check if alarm 1 is enabled. If it is, return an error.
+    // requiring the caller to disable the alarm
+    // For now, it's fine
+    unsafe {
+        ALARM_INTR0 = f;
+    }
+}
+
+pub fn init_xosc() {
+    use register::xosc::CTRL;
+    use register::xosc::STATUS;
+    let ctrl = CTRL as *mut usize;
+    let stat = STATUS as *mut usize;
+
+    unsafe {
+        let read = stat.read_volatile();
+        if (read >> 31) & 1 == 1 {
+            return;
+        }
+        ctrl.write_volatile(0xfab << 12);
+        loop {
+            let read = stat.read_volatile();
+            let enabled = (read >> 12) & 1;
+            let bad_write = (read >> 24) & 1;
+            let stable = (read >> 31) & 1;
+            if stable == 1 {
+                return;
+            }
+        }
+    }
+}
+
+pub fn init_watchdog() {
+    use register::watchdog::TICK;
+    let tick = TICK as *mut usize;
+    unsafe {
+        tick.write_volatile(1 << 9 | 12);
+    }
+}
 
 pub fn init_alarm() {
     use register::m0plus::NVIC_ISER;
