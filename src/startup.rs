@@ -5,7 +5,10 @@ use crate::register;
 use crate::register::flash::XIP_BASE;
 use crate::ssi_init;
 use crate::timer::init_alarm;
+use crate::timer::init_pll_sys;
 use crate::timer::init_xosc;
+use crate::timer::select_pll_as_sys_clk;
+use crate::timer::select_xosc_as_ref_clk;
 use crate::vectors;
 use crate::watchdog::init_watchdog;
 use core::panic::PanicInfo;
@@ -45,11 +48,17 @@ pub unsafe extern "C" fn reset_handler() {
         }
     }
 
-    // init io stuffs
-    init_gpio();
+    // init
     init_xosc();
+    select_xosc_as_ref_clk();
+    unreset(1 << 12); // unreset pll
+    unreset(1 << 21); // unreset timer
+    init_pll_sys();
+    select_pll_as_sys_clk();
     init_watchdog();
     init_alarm();
+    unreset(1 << 5); // unreset io bank
+    init_gpio();
 
     unsafe {
         allocator::ALLOCATOR.get().init(
@@ -92,4 +101,21 @@ pub fn boot2() -> ! {
 #[panic_handler]
 fn panic_handler(_info: &PanicInfo) -> ! {
     loop {}
+}
+
+/// Pull the specified bits that are high in `bits` out of reset
+/// This function will
+/// - Take the bitwise NOT of `bits` and perform
+///   an AND with the existing reset bits.
+/// - Wait until all systems are out of reset
+///
+pub fn unreset(bits: usize) {
+    let reset = (register::reset::RESET) as *mut usize;
+    let reset_done = register::reset::RESET_DONE as *const usize;
+    unsafe {
+        let old = reset.read_volatile();
+        let new = old & !bits;
+        reset.write_volatile(new);
+        while reset_done.read_volatile() & bits != bits {}
+    }
 }

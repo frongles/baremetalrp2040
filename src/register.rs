@@ -47,3 +47,20 @@ pub mod xosc {
     pub const CTRL: usize = OFFSET + 0x00;
     pub const STATUS: usize = OFFSET + 0x04;
 }
+
+pub mod clock {
+    pub const OFFSET: usize = 0x40008000;
+    pub const REF_CTRL: usize = OFFSET + 0x30;
+    pub const REF_DIV: usize = OFFSET + 0x34;
+    pub const REF_SELECTED: usize = OFFSET + 0x38;
+    pub const SYS_CTRL: usize = OFFSET + 0x3c;
+    pub const SYS_DIV: usize = OFFSET + 0x40;
+    pub const SYS_SELECTED: usize = OFFSET + 0x44;
+}
+pub mod pll_sys {
+    pub const OFFSET: usize = 0x40028000;
+    pub const CS: usize = OFFSET + 0x0;
+    pub const PWD: usize = OFFSET + 0x4;
+    pub const FBDIV_INT: usize = OFFSET + 0x8;
+    pub const PRIM: usize = OFFSET + 0xc;
+}

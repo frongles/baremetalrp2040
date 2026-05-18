@@ -24,6 +24,52 @@ pub fn set_interrupt(f: fn()) {
     }
 }
 
+pub fn select_xosc_as_ref_clk() {
+    use register::clock::{REF_CTRL, REF_DIV, REF_SELECTED};
+    let ctrl = REF_CTRL as *mut usize;
+    let div = REF_DIV as *mut usize;
+    let selected = REF_SELECTED as *mut usize;
+
+    unsafe {
+        // Set divider to 1 (bits 9:8)
+        div.write_volatile(1 << 8);
+
+        // clk_ref glitchless mux: bits 1:0
+        // 0 = ROSC, 1 = aux mux, 2 = XOSC
+        ctrl.write_volatile(0x2);
+
+        // Poll REF_SELECTED until bit 2 is set (XOSC = source 2, so bit 1<<2)
+        while selected.read_volatile() & (1 << 2) == 0 {}
+    }
+}
+
+pub fn select_pll_as_sys_clk() {
+    use register::clock::SYS_CTRL;
+    use register::clock::SYS_SELECTED;
+    let ctrl = SYS_CTRL as *mut usize;
+    let selected = SYS_SELECTED as *mut usize;
+    unsafe {
+        ctrl.write_volatile(1);
+        while selected.read_volatile() & (1 << 1) == 0 {}
+    }
+}
+
+pub fn init_pll_sys() {
+    use register::pll_sys::*;
+    let fbdiv = FBDIV_INT as *mut usize;
+    let pwr = PWD as *mut usize;
+    let cs = CS as *mut usize;
+    let prim = PRIM as *mut usize;
+    unsafe {
+        cs.write_volatile(1 << 0);
+        fbdiv.write_volatile(100);
+        pwr.write_volatile(!(1 << 0 | 1 << 5));
+        while cs.read_volatile() >> 31 == 0 {}
+        prim.write_volatile(6 << 16 | 2 << 12);
+        pwr.write_volatile(!(1 << 0 | 1 << 2 | 1 << 3 | 1 << 5));
+    }
+}
+
 pub fn init_xosc() {
     use register::xosc::CTRL;
     use register::xosc::STATUS;

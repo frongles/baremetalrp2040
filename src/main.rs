@@ -18,10 +18,10 @@ mod allocator;
 extern crate alloc;
 
 pub fn main() {
-    let a = Box::new(100);
+    let a = Box::new(10);
     let val = black_box(*a);
     let time = val * 100_000;
-    set_interrupt(|| alarm_led_loop(100_000));
+    set_interrupt(|| alarm_led_loop(500_000));
     set_alarm(time);
     loop {}
 }
