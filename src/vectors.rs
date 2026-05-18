@@ -1,6 +1,6 @@
-use crate::gpio_init::init_gpio;
 use crate::register;
-use crate::startup::reset_handler;
+use crate::startup::startup::init_gpio;
+use crate::startup::startup::reset_handler;
 use crate::timer::alarm_intr0;
 use crate::timer::alarm_intr1;
 use crate::timer::alarm_intr2;

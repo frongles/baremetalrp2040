@@ -1,16 +1,13 @@
 #![no_std]
 #![no_main]
 
-mod gpio_init;
+mod interrupt;
 mod register;
-mod ssi_init;
 mod startup;
 mod timer;
 mod vectors;
-mod watchdog;
-use core::hint::black_box;
-
 use alloc::boxed::Box;
+use core::hint::black_box;
 use timer::set_alarm;
 use timer::set_interrupt;
 
@@ -21,7 +18,7 @@ pub fn main() {
     let a = Box::new(10);
     let val = black_box(*a);
     let time = val * 100_000;
-    set_interrupt(|| alarm_led_loop(500_000));
+    set_interrupt(move || alarm_led_loop(val * 500_000));
     set_alarm(time);
     loop {}
 }
