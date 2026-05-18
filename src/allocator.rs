@@ -1,20 +1,33 @@
 use core::{alloc::GlobalAlloc, cell::UnsafeCell, ptr};
 
+/// Wrapped `UnsafeCell` to allow local implementation
 pub struct Wrapped<T> {
     inner: UnsafeCell<T>,
 }
 impl<T> Wrapped<T> {
+    /// Wrap a new type `T`
     const fn new(inner: T) -> Wrapped<T> {
         Wrapped {
             inner: UnsafeCell::new(inner),
         }
     }
+    /// Get a mutable reference to `T`
     pub fn get(&self) -> &mut T {
         unsafe { &mut *self.inner.get() }
     }
 }
 unsafe impl<T> Sync for Wrapped<T> {}
 
+/// Bump Allocator
+///
+/// Sequentially allocates memory.
+///
+/// On deallocation:
+///  - if the memory to be deallocated is the last memory that was
+///    allocated, it is reclaimed
+///  - If after the deallocation no more memory is allocated, reclaim all
+///    memory
+///  - Else do nothing
 pub struct Allocator {
     heap_start: usize,
     heap_end: usize,
@@ -61,7 +74,10 @@ unsafe impl GlobalAlloc for Wrapped<Allocator> {
         let allocator = self.get();
         if allocator.last_alloced == ptr as usize {
             allocator.next = ptr as usize;
-            allocator.allocations -= 1;
+        }
+        allocator.allocations -= 1;
+        if allocator.allocations == 0 {
+            allocator.next = allocator.heap_start
         }
     }
 }

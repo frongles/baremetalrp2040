@@ -18,7 +18,7 @@ pub fn main() {
     let a = Box::new(10);
     let val = black_box(*a);
     let time = val * 100_000;
-    set_interrupt(move || alarm_led_loop(val * 500_000));
+    set_interrupt(move || alarm_led_loop(val * 500_000), 0);
     set_alarm(time);
     loop {}
 }

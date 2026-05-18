@@ -1,5 +1,7 @@
 use crate::alloc::boxed::Box;
 use core::cell::UnsafeCell;
+
+/// Wrapper to allow run-time setting of interrupt handlers
 pub struct InterruptSlot {
     inner: UnsafeCell<Option<Box<dyn Fn()>>>,
 }
@@ -11,6 +13,7 @@ impl InterruptSlot {
             inner: UnsafeCell::new(None),
         }
     }
+    /// Call the inner function
     pub fn call(&self) {
         unsafe {
             if let Some(f) = &*self.inner.get() {
