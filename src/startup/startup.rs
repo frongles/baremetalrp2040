@@ -1,10 +1,12 @@
-use crate::allocator;
+use crate::allocator::ALLOCATOR;
 use crate::main;
 use crate::register;
 use crate::register::flash::XIP_BASE;
 use crate::startup::ssi_init;
 use crate::vectors;
+use core::ops::DerefMut;
 use core::panic::PanicInfo;
+use core::slice::SplitInclusive;
 
 unsafe extern "C" {
     pub fn _sdata();
@@ -19,6 +21,7 @@ unsafe extern "C" {
 }
 
 pub unsafe extern "C" fn reset_handler() {
+    init_spinlock();
     init_xosc();
     select_xosc_as_ref_clk();
 
@@ -34,13 +37,10 @@ pub unsafe extern "C" fn reset_handler() {
     init_alarm();
     unreset(1 << 5); // unreset io bank
     init_gpio();
-
-    unsafe {
-        allocator::ALLOCATOR.get().init(
-            _sheap as *const usize as usize,
-            _eheap as *const usize as usize,
-        )
-    };
+    ALLOCATOR.init(
+        _sheap as *const usize as usize,
+        _eheap as *const usize as usize,
+    );
 
     main();
     loop {}
@@ -60,6 +60,7 @@ fn init_data() {
         }
     }
 }
+
 fn init_bss() {
     let mut bss_start = _sbss as *mut usize;
     let bss_end = _ebss as *mut usize;
@@ -221,5 +222,15 @@ pub fn init_watchdog() {
     let tick = TICK as *mut usize;
     unsafe {
         tick.write_volatile(1 << 9 | 12);
+    }
+}
+
+fn init_spinlock() {
+    use register::sio::SPINLOCK_OFFSET;
+    let mut i = 0;
+    while i < 32 {
+        let spinlock = (SPINLOCK_OFFSET + i * 4) as *mut usize;
+        unsafe { spinlock.write_volatile(1) }
+        i = i + 1;
     }
 }

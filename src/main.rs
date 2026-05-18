@@ -1,10 +1,10 @@
 #![no_std]
 #![no_main]
 
-mod interrupt;
 mod register;
 mod startup;
 mod timer;
+mod util;
 mod vectors;
 use alloc::boxed::Box;
 use core::hint::black_box;

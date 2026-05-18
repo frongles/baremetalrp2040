@@ -2,6 +2,11 @@ pub mod reset {
     pub const RESET: usize = 0x4000c000;
     pub const RESET_DONE: usize = 0x4000c008;
 }
+pub mod sio {
+    pub const OFFSET: usize = 0xd0000000;
+    // Add usize to get next spinlocks
+    pub const SPINLOCK_OFFSET: usize = OFFSET + 0x100;
+}
 pub mod gpio {
     pub const IO_BANK0_GPIO25_CTRL: usize = 0x400140cc;
     pub const OE_SET: usize = 0xd0000024;

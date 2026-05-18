@@ -1,22 +1,9 @@
-use core::{alloc::GlobalAlloc, cell::UnsafeCell, ptr};
-
-/// Wrapped `UnsafeCell` to allow local implementation
-pub struct Wrapped<T> {
-    inner: UnsafeCell<T>,
-}
-impl<T> Wrapped<T> {
-    /// Wrap a new type `T`
-    const fn new(inner: T) -> Wrapped<T> {
-        Wrapped {
-            inner: UnsafeCell::new(inner),
-        }
-    }
-    /// Get a mutable reference to `T`
-    pub fn get(&self) -> &mut T {
-        unsafe { &mut *self.inner.get() }
-    }
-}
-unsafe impl<T> Sync for Wrapped<T> {}
+use crate::util::Wrapped;
+use core::{
+    alloc::GlobalAlloc,
+    ops::{Deref, DerefMut},
+    ptr,
+};
 
 /// Bump Allocator
 ///
@@ -54,11 +41,19 @@ impl Allocator {
 }
 
 #[global_allocator]
-pub static ALLOCATOR: Wrapped<Allocator> = Wrapped::new(Allocator::new());
+pub static ALLOCATOR: Wrapped<Allocator> = Wrapped::new(Allocator::new(), 5);
+
+impl Wrapped<Allocator> {
+    pub fn init(&self, sheap: usize, eheap: usize) {
+        let mut guard = self.lock();
+        unsafe { guard.deref_mut().init(sheap, eheap) }
+    }
+}
 
 unsafe impl GlobalAlloc for Wrapped<Allocator> {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
-        let allocator = self.get();
+        let mut guard = self.lock();
+        let allocator = guard.deref_mut();
         let alloc_start = align_up(allocator.next, layout.align());
         let alloc_end = alloc_start + layout.size();
         if alloc_end > allocator.heap_end {
@@ -71,7 +66,8 @@ unsafe impl GlobalAlloc for Wrapped<Allocator> {
         }
     }
     unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
-        let allocator = self.get();
+        let mut guard = self.lock();
+        let allocator = guard.deref_mut();
         if allocator.last_alloced == ptr as usize {
             allocator.next = ptr as usize;
         }
