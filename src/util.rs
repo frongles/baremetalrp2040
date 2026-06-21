@@ -1,5 +1,4 @@
-use crate::alloc::boxed::Box;
-use crate::register::sio::SPINLOCK_OFFSET;
+use crate::{alloc::boxed::Box, register::sio::spinlock};
 use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut};
 
@@ -13,28 +12,19 @@ pub struct Wrapped<T> {
 impl<T> Wrapped<T> {
     /// Wrap a new type `T`
     pub const fn new(inner: T, offset: usize) -> Wrapped<T> {
-        let spinlock = (SPINLOCK_OFFSET + offset * 4) as *mut usize;
+        let spinlock = (spinlock(offset)) as *mut usize;
         Wrapped {
             inner: UnsafeCell::new(inner),
             spinlock,
             number: offset,
         }
     }
-    /// Get a mutable reference to `T`
-    fn get(&self) -> &mut T {
-        unsafe { &mut *self.inner.get() }
-    }
 
     pub fn lock(&self) -> Guard<'_, T> {
         self.lock_hw();
         Guard {
-            inner: self.get(),
+            inner: unsafe { &mut *self.inner.get() },
             spinlock: self.spinlock,
-        }
-    }
-    fn unlock_hw(&self) {
-        unsafe {
-            self.spinlock.write_volatile(1);
         }
     }
     fn lock_hw(&self) {
@@ -49,7 +39,6 @@ impl<T> Wrapped<T> {
 unsafe impl<T: Send> Sync for Wrapped<T> {}
 
 impl Wrapped<Option<Box<dyn Fn() + Send>>> {
-    /// Call the inner function
     pub fn set(&self, f: impl Fn() + 'static + Send) {
         let mut guard = self.lock();
         *guard = Some(Box::new(f));

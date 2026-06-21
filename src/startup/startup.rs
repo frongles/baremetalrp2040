@@ -2,11 +2,10 @@ use crate::allocator::ALLOCATOR;
 use crate::main;
 use crate::register;
 use crate::register::flash::XIP_BASE;
+use crate::register::gpio::set_sio;
 use crate::startup::ssi_init;
 use crate::vectors;
-use core::ops::DerefMut;
 use core::panic::PanicInfo;
-use core::slice::SplitInclusive;
 
 unsafe extern "C" {
     pub fn _sdata();
@@ -41,6 +40,8 @@ pub unsafe extern "C" fn reset_handler() {
         _sheap as *const usize as usize,
         _eheap as *const usize as usize,
     );
+    unreset(1 << 3); // unreset I2C0
+    unreset(1 << 8); // pads bank
 
     main();
     loop {}
@@ -123,11 +124,9 @@ pub fn unreset(bits: usize) {
 
 pub fn init_gpio() {
     // init io stuffs
-    let io_bank_ctr = register::gpio::IO_BANK0_GPIO25_CTRL as *mut usize;
-    let sio_oe = register::gpio::OE_SET as *mut usize;
+    let sio_oe = register::sio::gpio::OE_SET as *mut usize;
+    set_sio(25);
     unsafe {
-        // Set GPIO 25 function to SIO
-        io_bank_ctr.write_volatile(5);
         // Set output enable for GPIO 25 in SIO
         sio_oe.write_volatile(1 << 25);
     }
@@ -140,10 +139,10 @@ pub fn init_alarm() {
     let inte = INTE as *mut usize;
     let nvic = NVIC_ISER as *mut usize;
     unsafe {
-        // enable ALARM_0
-        inte.write_volatile(1 << 0);
-        // enable TIMER_IRQ_0
-        nvic.write_volatile(1 << 0);
+        // enable ALARM_0 and ALARM_1
+        inte.write_volatile(1 << 0 | 1 << 1);
+        // enable TIMER_IRQ_0 and TIMRE_IRQ_1
+        nvic.write_volatile(1 << 0 | 1 << 1);
     }
 }
 
@@ -225,12 +224,12 @@ pub fn init_watchdog() {
     }
 }
 
+/// Clear all spinlocks
 fn init_spinlock() {
-    use register::sio::SPINLOCK_OFFSET;
     let mut i = 0;
     while i < 32 {
-        let spinlock = (SPINLOCK_OFFSET + i * 4) as *mut usize;
+        let spinlock = (register::sio::spinlock(i)) as *mut usize;
         unsafe { spinlock.write_volatile(1) }
-        i = i + 1;
+        i += 1;
     }
 }

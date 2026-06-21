@@ -15,4 +15,6 @@ opt-level = "s"     # optimize for size
 panic = "abort"
 debug = false
 
-
+[profile.dev]
+debug=false
+opt-level = "s"     # optimize for size

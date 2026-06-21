@@ -1,9 +1,5 @@
 use crate::util::Wrapped;
-use core::{
-    alloc::GlobalAlloc,
-    ops::{Deref, DerefMut},
-    ptr,
-};
+use core::{alloc::GlobalAlloc, ops::DerefMut, ptr};
 
 /// Bump Allocator
 ///
@@ -65,7 +61,7 @@ unsafe impl GlobalAlloc for Wrapped<Allocator> {
             alloc_start as *mut u8
         }
     }
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
+    unsafe fn dealloc(&self, ptr: *mut u8, _layout: core::alloc::Layout) {
         let mut guard = self.lock();
         let allocator = guard.deref_mut();
         if allocator.last_alloced == ptr as usize {

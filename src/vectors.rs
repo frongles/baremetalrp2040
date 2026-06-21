@@ -26,7 +26,7 @@ unsafe extern "C" fn default_handler() {
     // setup io bank
     init_gpio();
     // startup blinky sequence
-    let sio_out = register::gpio::OUT_XOR as *mut usize;
+    let sio_out = register::sio::gpio::OUT_XOR as *mut usize;
     loop {
         unsafe {
             // Wait for some time

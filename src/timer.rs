@@ -51,11 +51,11 @@ pub fn set_interrupt(f: impl Fn() + 'static + Send, alarm: u8) {
     }
 }
 
-/// Set alarm 0
-pub fn set_alarm(time_us: u32) {
+/// Set alarm `alarm`
+pub fn set_alarm(time_us: u32, alarm: usize) {
     use register::time::ALARM0;
     use register::time::TIMELR;
-    let alarm = ALARM0 as *mut usize;
+    let alarm = (ALARM0 + alarm * 4) as *mut usize;
     let time = TIMELR as *mut usize;
     unsafe {
         let now = time.read_volatile();
