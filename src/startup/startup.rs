@@ -2,7 +2,6 @@ use crate::allocator::ALLOCATOR;
 use crate::main;
 use crate::register;
 use crate::register::flash::XIP_BASE;
-use crate::register::gpio::set_sio;
 use crate::startup::ssi_init;
 use crate::vectors;
 use core::panic::PanicInfo;
@@ -38,7 +37,6 @@ pub unsafe extern "C" fn reset_handler() {
         _sheap as *const usize as usize,
         _eheap as *const usize as usize,
     );
-    unreset(1 << 3); // unreset I2C0
 
     main();
     loop {}

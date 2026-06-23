@@ -11,7 +11,6 @@ use core::sync::atomic::{Ordering, fence};
 ///
 /// It's recommended to wrap the mutex around a [`bool`] and keep lock contention
 /// as minimal as possible until I implement an AtomicBool.
-
 pub struct Mutex<T> {
     inner: UnsafeCell<T>,
     taken: UnsafeCell<bool>,

@@ -188,19 +188,6 @@ pub mod pll_sys {
     pub const PRIM: usize = OFFSET + 0xc;
 }
 pub mod i2c {
-    #[derive(Copy, Clone)]
-    pub enum Controller {
-        Zero,
-        One,
-    }
-    impl Controller {
-        pub const fn base(&self) -> usize {
-            match self {
-                Controller::Zero => 0x40044000,
-                Controller::One => 0x40048000,
-            }
-        }
-    }
     pub const CON: usize = 0x00;
     pub const TAR: usize = 0x04;
     pub const SAR: usize = 0x04;

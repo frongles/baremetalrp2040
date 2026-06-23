@@ -22,12 +22,17 @@ pub trait Uart0: sealed::Sealed {}
 pub trait Uart1: sealed::Sealed {}
 pub trait UartPin: sealed::Sealed {}
 
-pub trait I2cSdaPin: sealed::Sealed {
+pub trait I2cBank: sealed::Sealed {
+    const BASE: usize;
+}
+
+pub trait I2cSdaPin {
     type Bank;
 }
-pub trait I2cSclPin: sealed::Sealed {
+pub trait I2cSclPin {
     type Bank;
 }
+
 pub trait I2cPin: sealed::Sealed {}
 
 pub trait SioPin: sealed::Sealed {}
@@ -42,7 +47,15 @@ pub enum I2cSda {}
 pub enum I2cScl {}
 pub enum I2c {}
 pub enum I2c0 {}
+impl I2cBank for I2c0 {
+    const BASE: usize = 0x40044000;
+}
 pub enum I2c1 {}
+impl I2cBank for I2c1 {
+    const BASE: usize = 0x40048000;
+}
+impl sealed::Sealed for I2c0 {}
+impl sealed::Sealed for I2c1 {}
 pub enum Pwm {}
 
 pub enum Sio {}
