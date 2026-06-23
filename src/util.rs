@@ -5,12 +5,8 @@ use core::sync::atomic::{Ordering, fence};
 
 /// A mutex around type T, using spinlock N
 ///
-/// note that this mutex implementation holds the spinlock
-/// for the entire lifetime of the guard, and so great care must be taken when
-/// taking the lock, if anything else in the entire program uses the same spinlock
+/// Note that this mutex implementation will spin while waiting for the lock
 ///
-/// It's recommended to wrap the mutex around a [`bool`] and keep lock contention
-/// as minimal as possible until I implement an AtomicBool.
 pub struct Mutex<T> {
     inner: UnsafeCell<T>,
     taken: UnsafeCell<bool>,

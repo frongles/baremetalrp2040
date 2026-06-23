@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+mod allocator;
 mod gpio;
 mod i2c;
 mod register;
@@ -8,24 +9,19 @@ mod startup;
 mod timer;
 mod util;
 mod vectors;
-use crate::gpio::I2c0;
+extern crate alloc;
 use crate::gpio::Sio;
 use crate::i2c::I2c;
 use crate::util::Mutex;
 use alloc::boxed::Box;
-use core::cell::RefCell;
 use core::hint::black_box;
-use core::ops::Deref;
-use core::ops::DerefMut;
 use gpio::Gpio;
+use i2c::I2cTrait;
 use timer::set_alarm;
 use timer::set_interrupt;
 
 static GPIO25: Mutex<Option<Gpio<25, Sio>>> = Mutex::new(None);
-static I2C: Mutex<Option<I2c<gpio::I2c0>>> = Mutex::new(None);
-
-mod allocator;
-extern crate alloc;
+static DISPLAY: Mutex<Option<DisplayDriver<I2c<gpio::I2c0>>>> = Mutex::new(None);
 
 pub fn main() {
     let a = Box::new(10);
@@ -47,14 +43,11 @@ pub fn main() {
         let pin1 = pins.gpio1;
         let addr = 0b0111100;
         let ctrl = i2c::Controller::<gpio::I2c0>::take().unwrap();
-        let mut i2c = i2c::I2c::new(ctrl, addr, pin0, pin1);
-        // init sequence
-        i2c.send(&[0x00, 0x8D, 0x14]);
-        // turn screen on
-        i2c.send(&[0x00, 0xAF]);
-        branch_abort_src(&mut i2c);
-        let mut guard = I2C.lock();
-        *guard = Some(i2c);
+        let i2c = i2c::I2c::new(ctrl, addr, pin0, pin1);
+        let mut display = DisplayDriver::new(i2c);
+        display.display_on();
+        let mut guard = DISPLAY.lock();
+        *guard = Some(display);
     }
 
     set_interrupt(move || display_on(750_000, 1), 0);
@@ -63,32 +56,19 @@ pub fn main() {
 
     loop {}
 }
-fn branch_abort_src(i2c: &mut I2c<I2c0>) {
-    let abrt_src = unsafe { i2c.read(register::i2c::TX_ABRT_SOURCE) };
-    if abrt_src != 0 {
-        flash_err(500_000)
-    }
-}
 
 fn display_on(time_us: u32, alarm: usize) {
     flip_25();
-    if let Some(i2c) = I2C.lock().as_mut() {
-        let bytes = &[0, 0xAF];
-        i2c.send(bytes);
-        branch_abort_src(i2c);
-        let bytes = &[0, 0xA5];
-        i2c.send(bytes);
-        branch_abort_src(i2c);
+    if let Some(display) = DISPLAY.lock().as_mut() {
+        display.display_on();
+        display.all_on();
     }
     set_alarm(time_us, alarm);
 }
 fn display_off(time_us: u32, alarm: usize) {
-    if let Some(i2c) = I2C.lock().as_mut() {
-        let bytes = &[0, 0xAE];
-        i2c.send(bytes);
-        branch_abort_src(i2c);
+    if let Some(display) = DISPLAY.lock().as_mut() {
+        display.display_off();
     }
-
     set_alarm(time_us, alarm);
 }
 
@@ -112,6 +92,42 @@ fn flip_25() {
     {
         if let Some(g) = GPIO25.lock().as_ref() {
             g.flip();
+        }
+    }
+}
+
+struct DisplayDriver<S: I2cTrait> {
+    i2c: S,
+}
+
+impl<S: I2cTrait> DisplayDriver<S> {
+    fn new(i2c: S) -> Self {
+        let mut display = Self { i2c };
+        display.init();
+        display
+    }
+    fn init(&mut self) {
+        self.i2c.send(&[0x00, 0x8D, 0x14]);
+        if self.i2c.abrt_src() != 0 {
+            flash_err(1_000_000)
+        }
+    }
+    fn display_on(&mut self) {
+        self.i2c.send(&[0x00, 0xAF]);
+        if self.i2c.abrt_src() != 0 {
+            flash_err(1_000_000)
+        }
+    }
+    fn display_off(&mut self) {
+        self.i2c.send(&[0x00, 0xAE]);
+        if self.i2c.abrt_src() != 0 {
+            flash_err(1_000_000)
+        }
+    }
+    fn all_on(&mut self) {
+        self.i2c.send(&[0x00, 0xA5]);
+        if self.i2c.abrt_src() != 0 {
+            flash_err(1_000_000)
         }
     }
 }

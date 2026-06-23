@@ -11,6 +11,19 @@ pub struct Controller<C: I2cBank> {
     _bank: PhantomData<C>,
 }
 
+pub trait I2cTrait {
+    /// Send all the bytes in array and end with a stop condition
+    fn send(&mut self, bytes: &[u8]);
+    /// Read a single byte from the FIFO RX queue
+    ///
+    /// Ideally, we split this into a 'set read' and 'read bytes'
+    /// function
+    ///
+    /// I'm not using this curently yet though
+    fn next(&mut self) -> u8;
+    fn abrt_src(&mut self) -> usize;
+}
+
 impl Controller<gpio::I2c0> {
     pub fn take() -> Option<Self> {
         let mut g = I2C0_TAKEN.lock();
@@ -87,8 +100,22 @@ impl<C: I2cBank> I2c<C> {
         }
         self
     }
+    fn flush(&mut self) {
+        loop {
+            let status = unsafe { self.read(i2c::STATUS) };
+            let txflr = unsafe { self.read(i2c::TXFLR) };
+            // TFE (bit 2) set, MST_ACTIVITY (bit 5) clear, FIFO empty
+            if status & (1 << 2) != 0 && status & (1 << 5) == 0 && txflr == 0 {
+                break;
+            }
+            core::hint::spin_loop();
+        }
+    }
+}
+
+impl<C: I2cBank> I2cTrait for I2c<C> {
     /// Send all the bytes in array and end with a stop condition
-    pub fn send(&mut self, bytes: &[u8]) {
+    fn send(&mut self, bytes: &[u8]) {
         let mut byte_iter = bytes.iter();
         let Some(&last) = byte_iter.next_back() else {
             return;
@@ -103,13 +130,7 @@ impl<C: I2cBank> I2c<C> {
         //self.flush();
     }
 
-    /// Read a single byte from the FIFO RX queue
-    ///
-    /// Ideally, we split this into a 'set read' and 'read bytes'
-    /// function
-    ///
-    /// I'm not using this curently yet though
-    pub fn next(&mut self) -> u8 {
+    fn next(&mut self) -> u8 {
         unsafe {
             // set that I want to read
             self.write(i2c::DATA_CMD, 1 << 8);
@@ -117,15 +138,7 @@ impl<C: I2cBank> I2c<C> {
             (self.read(i2c::DATA_CMD) & 0xFF) as u8
         }
     }
-    fn flush(&mut self) {
-        loop {
-            let status = unsafe { self.read(i2c::STATUS) };
-            let txflr = unsafe { self.read(i2c::TXFLR) };
-            // TFE (bit 2) set, MST_ACTIVITY (bit 5) clear, FIFO empty
-            if status & (1 << 2) != 0 && status & (1 << 5) == 0 && txflr == 0 {
-                break;
-            }
-            core::hint::spin_loop();
-        }
+    fn abrt_src(&mut self) -> usize {
+        unsafe { self.read(crate::register::i2c::TX_ABRT_SOURCE) }
     }
 }
