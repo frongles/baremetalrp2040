@@ -34,14 +34,11 @@ pub unsafe extern "C" fn reset_handler() {
     unreset(1 << 21); // unreset timer
     init_watchdog();
     init_alarm();
-    unreset(1 << 5); // unreset io bank
-    init_gpio();
     ALLOCATOR.init(
         _sheap as *const usize as usize,
         _eheap as *const usize as usize,
     );
     unreset(1 << 3); // unreset I2C0
-    unreset(1 << 8); // pads bank
 
     main();
     loop {}
@@ -119,16 +116,6 @@ pub fn unreset(bits: usize) {
         let new = old & !bits;
         reset.write_volatile(new);
         while reset_done.read_volatile() & bits != bits {}
-    }
-}
-
-pub fn init_gpio() {
-    // init io stuffs
-    let sio_oe = register::sio::gpio::OE_SET as *mut usize;
-    set_sio(25);
-    unsafe {
-        // Set output enable for GPIO 25 in SIO
-        sio_oe.write_volatile(1 << 25);
     }
 }
 

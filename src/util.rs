@@ -1,44 +1,58 @@
 use crate::{alloc::boxed::Box, register::sio::spinlock};
 use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut};
+use core::sync::atomic::{Ordering, fence};
 
-/// Wrapped `UnsafeCell` to allow local implementation
-pub struct Wrapped<T> {
+/// A mutex around type T, using spinlock N
+///
+/// note that this mutex implementation holds the spinlock
+/// for the entire lifetime of the guard, and so great care must be taken when
+/// taking the lock, if anything else in the entire program uses the same spinlock
+///
+/// It's recommended to wrap the mutex around a [`bool`] and keep lock contention
+/// as minimal as possible until I implement an AtomicBool.
+
+pub struct Mutex<T> {
     inner: UnsafeCell<T>,
-    spinlock: *mut usize,
-    number: usize,
+    taken: UnsafeCell<bool>,
+    spinlock: SpinLock<31>,
 }
 
-impl<T> Wrapped<T> {
+impl<T> Mutex<T> {
     /// Wrap a new type `T`
-    pub const fn new(inner: T, offset: usize) -> Wrapped<T> {
-        let spinlock = (spinlock(offset)) as *mut usize;
-        Wrapped {
+    pub const fn new(inner: T) -> Mutex<T> {
+        Mutex {
             inner: UnsafeCell::new(inner),
-            spinlock,
-            number: offset,
+            taken: UnsafeCell::new(false),
+            spinlock: SpinLock::new(),
         }
     }
 
     pub fn lock(&self) -> Guard<'_, T> {
-        self.lock_hw();
+        loop {
+            if unsafe { !*self.taken.get() } {
+                self.spinlock.lock();
+                if unsafe { !*self.taken.get() } {
+                    unsafe { *self.taken.get() = true }
+                    self.spinlock.unlock();
+                    break;
+                }
+                self.spinlock.unlock();
+            }
+        }
+        fence(Ordering::Acquire);
         Guard {
             inner: unsafe { &mut *self.inner.get() },
+            taken: unsafe { &mut *self.taken.get() },
             spinlock: self.spinlock,
         }
     }
-    fn lock_hw(&self) {
-        unsafe {
-            while self.spinlock.read_volatile() == 0 {
-                core::hint::spin_loop();
-            }
-        };
-    }
 }
 
-unsafe impl<T: Send> Sync for Wrapped<T> {}
+unsafe impl<T: Send> Sync for Mutex<T> {}
+unsafe impl<const N: usize> Send for SpinLock<N> {}
 
-impl Wrapped<Option<Box<dyn Fn() + Send>>> {
+impl Mutex<Option<Box<dyn Fn() + Send>>> {
     pub fn set(&self, f: impl Fn() + 'static + Send) {
         let mut guard = self.lock();
         *guard = Some(Box::new(f));
@@ -47,12 +61,16 @@ impl Wrapped<Option<Box<dyn Fn() + Send>>> {
 
 pub struct Guard<'a, T> {
     inner: &'a mut T,
-    spinlock: *mut usize,
+    taken: &'a mut bool,
+    spinlock: SpinLock<31>,
 }
 
 impl<T> Drop for Guard<'_, T> {
     fn drop(&mut self) {
-        self.unlock_hw();
+        self.spinlock.lock();
+        *self.taken = false;
+        self.spinlock.unlock();
+        fence(Ordering::Release);
     }
 }
 
@@ -68,10 +86,33 @@ impl<T> DerefMut for Guard<'_, T> {
         self.inner
     }
 }
-impl<T> Guard<'_, T> {
-    fn unlock_hw(&self) {
+
+#[derive(Clone, Copy)]
+pub struct SpinLock<const N: usize> {
+    inner: *mut usize,
+}
+
+impl<const N: usize> SpinLock<N> {
+    /// Get access to the Nth spinlock
+    pub const fn new() -> SpinLock<N> {
+        // This const block is evaluated at compile time no matter
+        // how `new` itself is called (const or runtime context).
+        const { assert!(N < 32, "spinlock index out of range") };
+
+        SpinLock {
+            inner: spinlock(N) as *mut usize,
+        }
+    }
+    pub fn lock(&self) {
         unsafe {
-            self.spinlock.write_volatile(1);
+            while self.inner.read_volatile() == 0 {
+                core::hint::spin_loop();
+            }
+        };
+    }
+    pub fn unlock(&self) {
+        unsafe {
+            self.inner.write_volatile(1);
         }
     }
 }

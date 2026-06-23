@@ -18,6 +18,8 @@ pub mod sio {
     /// - otherwise return non zero, and claim the lock
     ///
     /// Writing any value releases the lock
+    ///
+    /// There are 32 spinlocks
     #[inline(always)]
     pub const fn spinlock(n: usize) -> usize {
         SPINLOCK_OFFSET + 4 * n
@@ -80,7 +82,7 @@ pub mod gpio {
     /// Each GPIO can have 1 function at a time. Likewise, each peripheral input
     /// (e.g. UART0 RX) should only be selected on one GPIO at a time
     #[inline(always)]
-    const fn ctrl(n: usize) -> usize {
+    pub(crate) const fn ctrl(n: usize) -> usize {
         USER_BANK_IO_OFFSET + 8 * n + 4
     }
 

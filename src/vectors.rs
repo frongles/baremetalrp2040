@@ -1,6 +1,6 @@
 use crate::register;
-use crate::startup::startup::init_gpio;
 use crate::startup::startup::reset_handler;
+use crate::startup::startup::unreset;
 use crate::timer::alarm_intr0;
 use crate::timer::alarm_intr1;
 use crate::timer::alarm_intr2;
@@ -24,8 +24,14 @@ pub static VECTOR_TABLE: [Option<Handler>; 48] = make_vector_table();
 
 unsafe extern "C" fn default_handler() {
     // setup io bank
-    init_gpio();
     // startup blinky sequence
+    unreset(1 << 5);
+    let sio_oe = register::sio::gpio::OE_SET as *mut usize;
+    unsafe {
+        sio_oe.write_volatile(1 << 25);
+    }
+    let ctrl = register::gpio::ctrl(25) as *mut usize;
+    unsafe { ctrl.write_volatile(5) }
     let sio_out = register::sio::gpio::OUT_XOR as *mut usize;
     loop {
         unsafe {

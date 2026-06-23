@@ -1,4 +1,4 @@
-use crate::util::Wrapped;
+use crate::util::Mutex;
 use core::{alloc::GlobalAlloc, ops::DerefMut, ptr};
 
 /// Bump Allocator
@@ -37,16 +37,16 @@ impl Allocator {
 }
 
 #[global_allocator]
-pub static ALLOCATOR: Wrapped<Allocator> = Wrapped::new(Allocator::new(), 5);
+pub static ALLOCATOR: Mutex<Allocator> = Mutex::new(Allocator::new());
 
-impl Wrapped<Allocator> {
+impl Mutex<Allocator> {
     pub fn init(&self, sheap: usize, eheap: usize) {
         let mut guard = self.lock();
         unsafe { guard.deref_mut().init(sheap, eheap) }
     }
 }
 
-unsafe impl GlobalAlloc for Wrapped<Allocator> {
+unsafe impl GlobalAlloc for Mutex<Allocator> {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
         let mut guard = self.lock();
         let allocator = guard.deref_mut();

@@ -1,12 +1,28 @@
+use crate::gpio::{Gpio, I2cSclPin, I2cSdaPin};
 use crate::register::i2c::{self, Controller};
-use core::marker::PhantomData;
 
 #[derive(Clone, Copy)]
 pub struct I2c {
     ctrl: i2c::Controller,
 }
 impl I2c {
-    pub fn new(ctrl: Controller, slave_addr: u8) -> I2c {
+    pub fn new<const N: usize, const B: usize, T, S, C>(
+        ctrl: Controller,
+        slave_addr: u8,
+        sda: Gpio<B, S>,
+        scl: Gpio<N, T>,
+    ) -> I2c
+    where
+        Gpio<N, T>: I2cSclPin<Bank = C>,
+        Gpio<B, S>: I2cSdaPin<Bank = C>,
+    {
+        let mut sda = sda.i2c();
+        let mut scl = scl.i2c();
+        let opts = 1 << 1 // schmitt enable
+                 | 1 << 3 // pull up enable
+                 | 1 << 6; // input enable
+        sda.pad_ctrl(opts);
+        scl.pad_ctrl(opts);
         let i2c = I2c { ctrl };
         i2c.init(slave_addr);
         i2c
@@ -24,7 +40,6 @@ impl I2c {
     fn init(&self, slave_addr: u8) {
         unsafe {
             self.write(i2c::ENABLE, 0);
-            let conf = self.read(i2c::CON);
 
             const CON: usize = (1 << 0)   // master mode
                              | (1 << 1)   // standard speed  (bits [2:1] = 0b01)

@@ -2,7 +2,8 @@ use crate::register;
 
 /// missing form this function
 /// - writes to TXFLTR, RXFLTR for FIFO level
-/// - IMR interrupt masks
+/// - IMR interrupt masks...?
+///
 /// for both master and slave
 #[inline(always)]
 pub fn init_ssi() {
@@ -265,7 +266,7 @@ pub fn init_quad_ssi_io() {
         // instruction length is 0 bites
         let instr_len = 0 << 8;
         // tell mcu to append ssi_cmd to the address and send no instruction
-        let tx_type = 0x02 << 0;
+        let tx_type = 0x02;
         // ssi command for QuadIO
         let ssi_cmd = 0xa0 << 24;
         // wait 4 clock cycles between sending data and receiving

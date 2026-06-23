@@ -1,11 +1,11 @@
 use crate::Box;
 use crate::register;
-use crate::util::Wrapped;
+use crate::util::Mutex;
 
-static ALARM_0: Wrapped<Option<Box<dyn Fn() + Send>>> = Wrapped::new(None, 1);
-static ALARM_1: Wrapped<Option<Box<dyn Fn() + Send>>> = Wrapped::new(None, 2);
-static ALARM_2: Wrapped<Option<Box<dyn Fn() + Send>>> = Wrapped::new(None, 3);
-static ALARM_3: Wrapped<Option<Box<dyn Fn() + Send>>> = Wrapped::new(None, 4);
+static ALARM_0: Mutex<Option<Box<dyn Fn() + Send>>> = Mutex::new(None);
+static ALARM_1: Mutex<Option<Box<dyn Fn() + Send>>> = Mutex::new(None);
+static ALARM_2: Mutex<Option<Box<dyn Fn() + Send>>> = Mutex::new(None);
+static ALARM_3: Mutex<Option<Box<dyn Fn() + Send>>> = Mutex::new(None);
 
 pub unsafe extern "C" fn alarm_intr0() {
     let intr = register::time::INTR as *mut usize;
