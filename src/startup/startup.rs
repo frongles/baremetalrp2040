@@ -22,6 +22,7 @@ pub unsafe extern "C" fn reset_handler() {
     init_spinlock();
     init_xosc();
     select_xosc_as_ref_clk();
+    select_ref_as_sys_clk();
 
     unreset(1 << 12); // unreset pll
     init_pll_sys();
@@ -160,6 +161,15 @@ pub fn select_pll_as_sys_clk() {
         while selected.read_volatile() & (1 << 1) == 0 {}
     }
 }
+fn select_ref_as_sys_clk() {
+    use register::clock::{SYS_CTRL, SYS_SELECTED};
+    let ctrl = SYS_CTRL as *mut usize;
+    let selected = SYS_SELECTED as *mut usize;
+    unsafe {
+        ctrl.write_volatile(0); // glitchless SRC = clk_ref
+        while selected.read_volatile() & 1 == 0 {}
+    }
+}
 
 pub fn init_pll_sys() {
     use register::pll_sys::*;
@@ -179,16 +189,16 @@ pub fn init_pll_sys() {
 
 pub fn init_xosc() {
     use register::xosc::CTRL;
+    use register::xosc::STARTUP;
     use register::xosc::STATUS;
     let ctrl = CTRL as *mut usize;
     let stat = STATUS as *mut usize;
+    let start = STARTUP as *mut usize;
 
     unsafe {
-        let read = stat.read_volatile();
-        if (read >> 31) & 1 == 1 {
-            return;
-        }
-        ctrl.write_volatile(0xfab << 12);
+        ctrl.write_volatile(0xaa0);
+        start.write_volatile(0xc4);
+        ctrl.write_volatile(0xfab << 12 | 0xaa0);
         loop {
             let read = stat.read_volatile();
             let _enabled = (read >> 12) & 1;

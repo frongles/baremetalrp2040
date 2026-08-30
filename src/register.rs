@@ -169,6 +169,7 @@ pub mod xosc {
     const OFFSET: usize = 0x40024000;
     pub const CTRL: usize = OFFSET;
     pub const STATUS: usize = OFFSET + 0x04;
+    pub const STARTUP: usize = OFFSET + 0x0c;
 }
 
 pub mod clock {

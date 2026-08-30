@@ -11,7 +11,12 @@ pub struct Controller<C: I2cBank> {
     _bank: PhantomData<C>,
 }
 
+pub enum Operation<'a> {
+    Write(&'a [u8]),
+    Read(&'a [u8]),
+}
 pub trait I2cTrait {
+    fn transaction(&mut self, ops: &[Operation<'_>]);
     /// Send all the bytes in array and end with a stop condition
     fn send(&mut self, bytes: &[u8]);
     /// Read a single byte from the FIFO RX queue
@@ -21,7 +26,6 @@ pub trait I2cTrait {
     ///
     /// I'm not using this curently yet though
     fn next(&mut self) -> u8;
-    fn abrt_src(&mut self) -> usize;
 }
 
 impl Controller<gpio::I2c0> {
@@ -81,6 +85,22 @@ impl<C: I2cBank> I2c<C> {
     pub unsafe fn read(&mut self, off: usize) -> usize {
         unsafe { self.reg(off).read_volatile() }
     }
+    fn send_no_flush(&mut self, bytes: &[u8]) {
+        let mut byte_iter = bytes.iter();
+        let Some(&last) = byte_iter.next_back() else {
+            return;
+        };
+        for &byte in byte_iter {
+            let opts = byte as usize;
+            unsafe { self.write(i2c::DATA_CMD, opts) }
+        }
+        let stop: usize = 1 << 9; // the stop condition
+        let opts = stop | last as usize;
+        unsafe { self.write(i2c::DATA_CMD, opts) }
+    }
+    pub fn abrt_src(&mut self) -> usize {
+        unsafe { self.read(crate::register::i2c::TX_ABRT_SOURCE) }
+    }
 
     fn init(mut self, slave_addr: u8) -> I2c<C> {
         unsafe {
@@ -90,6 +110,11 @@ impl<C: I2cBank> I2c<C> {
                              | (1 << 1)   // standard speed  (bits [2:1] = 0b01)
                            //| (0 << 4)   // 7-bit master addressing
                              | (1 << 6); // slave mode disabled
+
+            self.write(i2c::SS_SCL_HCNT, 400);
+            self.write(i2c::SS_SCL_LCNT, 600);
+            self.write(i2c::FS_SPKLEN, 9);
+            self.write(i2c::SDA_HOLD, 31);
 
             self.write(i2c::CON, CON);
             self.write(i2c::TAR, slave_addr as usize);
@@ -114,20 +139,28 @@ impl<C: I2cBank> I2c<C> {
 }
 
 impl<C: I2cBank> I2cTrait for I2c<C> {
+    fn transaction(&mut self, ops: &[Operation<'_>]) {
+        let mut sending: bool = false;
+        for op in ops {
+            match op {
+                Operation::Write(items) => {
+                    sending = true;
+                    self.send_no_flush(*items);
+                }
+                Operation::Read(_items) => {
+                    if sending {
+                        self.flush();
+                        sending = false;
+                    }
+                    //todo!("read fixed number of bytes ops")
+                }
+            }
+        }
+    }
     /// Send all the bytes in array and end with a stop condition
     fn send(&mut self, bytes: &[u8]) {
-        let mut byte_iter = bytes.iter();
-        let Some(&last) = byte_iter.next_back() else {
-            return;
-        };
-        for &byte in byte_iter {
-            let opts = byte as usize;
-            unsafe { self.write(i2c::DATA_CMD, opts) }
-        }
-        let stop: usize = 1 << 9; // the stop condition
-        let opts = stop | last as usize;
-        unsafe { self.write(i2c::DATA_CMD, opts) }
-        //self.flush();
+        self.send_no_flush(bytes);
+        self.flush();
     }
 
     fn next(&mut self) -> u8 {
@@ -137,8 +170,5 @@ impl<C: I2cBank> I2cTrait for I2c<C> {
             // read
             (self.read(i2c::DATA_CMD) & 0xFF) as u8
         }
-    }
-    fn abrt_src(&mut self) -> usize {
-        unsafe { self.read(crate::register::i2c::TX_ABRT_SOURCE) }
     }
 }
