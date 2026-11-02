@@ -1,2 +1,4 @@
 /target
-*.pdf
+
+# Local datasheet reference
+/SSD1306-Revision_1.1.pdf

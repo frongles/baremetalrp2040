@@ -10,6 +10,8 @@ mod timer;
 mod util;
 mod vectors;
 extern crate alloc;
+use core::arch::asm;
+
 use crate::gpio::Sio;
 use crate::i2c::I2c;
 use crate::util::Mutex;
@@ -58,15 +60,18 @@ pub fn main() {
         *DISPLAY.lock() = Some(display);
     }
 
-    set_interrupt(move || display_on(5_000_000, 1), 0);
+    set_interrupt(move || display_on(2_000_000, 1), 0);
     set_interrupt(move || display_off(250_000, 0), 1);
     set_alarm(time, 0);
 
+    unsafe { (register::m0plus::SCR as *mut usize).write_volatile(2) }
+    unsafe { asm!("wfi") }
+    flip_25();
     loop {}
 }
 
 fn display_on(time_us: u32, alarm: usize) {
-    flip_25();
+    //flip_25();
     if let Some(display) = DISPLAY.lock().as_mut() {
         display.display_on();
         display.all_on();
@@ -74,7 +79,7 @@ fn display_on(time_us: u32, alarm: usize) {
     set_alarm(time_us, alarm);
 }
 fn display_off(time_us: u32, alarm: usize) {
-    flip_25();
+    //flip_25();
     if let Some(display) = DISPLAY.lock().as_mut() {
         display.display_off();
     }

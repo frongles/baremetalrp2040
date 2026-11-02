@@ -1,3 +1,4 @@
+#![allow(unused)]
 pub mod reset {
     pub const RESET: usize = 0x4000c000;
     pub const RESET_DONE: usize = 0x4000c008;
@@ -138,11 +139,76 @@ pub mod ssi {
 }
 pub mod m0plus {
     pub const OFFSET: usize = 0xe0000000;
-    pub const VTOR: usize = OFFSET + 0xed08;
-    /// Nested Vector Interrupt Controller
+
+    // SysTick
+    /// SysTick Control and Status Register
+    pub const SYST_CSR: usize = OFFSET + 0xe010;
+    /// SysTick Reload Value Register
+    pub const SYST_RVR: usize = OFFSET + 0xe014;
+    /// SysTick Current Value Register
+    pub const SYST_CVR: usize = OFFSET + 0xe018;
+    /// SysTick Calibration Value Register
+    pub const SYST_CALIB: usize = OFFSET + 0xe01c;
+
+    // Nested Vector Interrupt Controller
     /// Interrupt Set Enable Register
     pub const NVIC_ISER: usize = OFFSET + 0xe100;
+    /// Interrupt Clear Enable Register
+    pub const NVIC_ICER: usize = OFFSET + 0xe180;
+    /// Interrupt Set Pending Register
+    pub const NVIC_ISPR: usize = OFFSET + 0xe200;
+    /// Interrupt Clear Pending Register
+    pub const NVIC_ICPR: usize = OFFSET + 0xe280;
+    /// Interrupt Priority Register 0
+    pub const NVIC_IPR0: usize = OFFSET + 0xe400;
+    /// Interrupt Priority Register 1
+    pub const NVIC_IPR1: usize = OFFSET + 0xe404;
+    /// Interrupt Priority Register 2
+    pub const NVIC_IPR2: usize = OFFSET + 0xe408;
+    /// Interrupt Priority Register 3
+    pub const NVIC_IPR3: usize = OFFSET + 0xe40c;
+    /// Interrupt Priority Register 4
+    pub const NVIC_IPR4: usize = OFFSET + 0xe410;
+    /// Interrupt Priority Register 5
+    pub const NVIC_IPR5: usize = OFFSET + 0xe414;
+    /// Interrupt Priority Register 6
+    pub const NVIC_IPR6: usize = OFFSET + 0xe418;
+    /// Interrupt Priority Register 7
+    pub const NVIC_IPR7: usize = OFFSET + 0xe41c;
+
+    // System Control Block
+    /// CPUID Base Register
+    pub const CPUID: usize = OFFSET + 0xed00;
+    /// Interrupt Control and State Register
+    pub const ICSR: usize = OFFSET + 0xed04;
+    /// Vector Table Offset Register
+    pub const VTOR: usize = OFFSET + 0xed08;
+    /// Application Interrupt and Reset Control Register
+    pub const AIRCR: usize = OFFSET + 0xed0c;
+    /// System Control Register
+    pub const SCR: usize = OFFSET + 0xed10;
+    /// Configuration and Control Register
+    pub const CCR: usize = OFFSET + 0xed14;
+    /// System Handler Priority Register 2
+    pub const SHPR2: usize = OFFSET + 0xed1c;
+    /// System Handler Priority Register 3
+    pub const SHPR3: usize = OFFSET + 0xed20;
+    /// System Handler Control and State Register
+    pub const SHCSR: usize = OFFSET + 0xed24;
+
+    // Memory Protection Unit
+    /// MPU Type Register
+    pub const MPU_TYPE: usize = OFFSET + 0xed90;
+    /// MPU Control Register
+    pub const MPU_CTRL: usize = OFFSET + 0xed94;
+    /// MPU Region Number Register
+    pub const MPU_RNR: usize = OFFSET + 0xed98;
+    /// MPU Region Base Address Register
+    pub const MPU_RBAR: usize = OFFSET + 0xed9c;
+    /// MPU Region Attribute and Size Register
+    pub const MPU_RASR: usize = OFFSET + 0xeda0;
 }
+
 pub mod flash {
     pub const XIP_BASE: usize = 0x10000000;
 }

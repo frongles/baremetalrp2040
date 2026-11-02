@@ -1,3 +1,6 @@
+use core::arch::asm;
+use core::time::Duration;
+
 use crate::Box;
 use crate::register;
 use crate::util::Mutex;
@@ -51,15 +54,27 @@ pub fn set_interrupt(f: impl Fn() + 'static + Send, alarm: u8) {
     }
 }
 
+pub fn sleep(duration_us: u32) {
+    set_alarm(duration_us, 4);
+    let deadline = now() as u32 + duration_us;
+    while (now() as u32) < deadline {
+        unsafe { asm!("wfi") }
+    }
+}
+
 /// Set alarm `alarm`
 pub fn set_alarm(time_us: u32, alarm: usize) {
     use register::time::ALARM0;
-    use register::time::TIMELR;
     let alarm = (ALARM0 + alarm * 4) as *mut usize;
-    let time = TIMELR as *mut usize;
+    let now = now();
     unsafe {
-        let now = time.read_volatile();
         let future = now + time_us as usize;
         alarm.write_volatile(future);
     }
+}
+
+pub fn now() -> usize {
+    use register::time::TIMELR;
+    let time = TIMELR as *mut usize;
+    unsafe { time.read_volatile() }
 }
